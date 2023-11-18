@@ -8,6 +8,8 @@ export default class Slide {
     index: number;
     slide: Element;
     timeout: Timeout | null;
+    paused: boolean;
+    pausedTimeout: Timeout | null;
 
     constructor(container: Element, slides: Element[], controls: Element, time: number = 5000) {
         this.container = container;
@@ -18,6 +20,9 @@ export default class Slide {
         this.timeout = null;
         this.index = 0;
         this.slide = this.slides[this.index];
+        this.paused = false;
+        this.pausedTimeout = null;
+        
         
         this.init();
     }
@@ -33,7 +38,6 @@ export default class Slide {
         this.slides[index].classList.add("active");
         this.auto(this.time);
     }
-
     
     auto(time:number) {
        this.timeout?.clear();
@@ -41,20 +45,43 @@ export default class Slide {
     }
     
     prev() {
+        if(this.paused) return;
         this.index === 0 ? this.show(this.slides.length - 1) : this.show(this.index - 1);
     }
 
     next() {
+        if(this.paused) return;
         this.slides.length - 1 === this.index ? this.show(0) : this.show(this.index + 1);
+    }
+
+    pause() {
+        this.pausedTimeout = new Timeout(() =>  {
+            this.timeout?.pause();
+            this.paused = true;
+        }, 300);
+    }
+
+    continue () {
+        this.pausedTimeout?.clear();
+        if(this.paused) {
+            this.paused = false;
+            this.timeout?.continue();
+        }
     }
     
     private addControls() {
         const prevButton = document.createElement("button");
         const nextButton = document.createElement("button");
-        nextButton.addEventListener("pointerup", () => this.next());
-        prevButton.addEventListener("pointerup", () => this.prev());
+        prevButton.textContent = "Slide Anterior";
+        nextButton.textContent = "Proximo Slide";
         this.controls.appendChild(prevButton);
         this.controls.appendChild(nextButton);
+
+        this.controls.addEventListener("pointerdown", () => this.pause());
+        this.controls.addEventListener("pointerup", () => this.continue());
+        
+        nextButton.addEventListener("pointerup", () => this.next());
+        prevButton.addEventListener("pointerup", () => this.prev());
     }
 
     private init() {

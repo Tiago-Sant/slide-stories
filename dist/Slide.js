@@ -7,6 +7,8 @@ export default class Slide {
     index;
     slide;
     timeout;
+    paused;
+    pausedTimeout;
     constructor(container, slides, controls, time = 5000) {
         this.container = container;
         this.slides = slides;
@@ -15,6 +17,8 @@ export default class Slide {
         this.timeout = null;
         this.index = 0;
         this.slide = this.slides[this.index];
+        this.paused = false;
+        this.pausedTimeout = null;
         this.init();
     }
     hide(el) {
@@ -32,18 +36,39 @@ export default class Slide {
         this.timeout = new Timeout(() => this.next(), time);
     }
     prev() {
+        if (this.paused)
+            return;
         this.index === 0 ? this.show(this.slides.length - 1) : this.show(this.index - 1);
     }
     next() {
+        if (this.paused)
+            return;
         this.slides.length - 1 === this.index ? this.show(0) : this.show(this.index + 1);
+    }
+    pause() {
+        this.pausedTimeout = new Timeout(() => {
+            this.timeout?.pause();
+            this.paused = true;
+        }, 300);
+    }
+    continue() {
+        this.pausedTimeout?.clear();
+        if (this.paused) {
+            this.paused = false;
+            this.timeout?.continue();
+        }
     }
     addControls() {
         const prevButton = document.createElement("button");
         const nextButton = document.createElement("button");
-        nextButton.addEventListener("pointerup", () => this.next());
-        prevButton.addEventListener("pointerup", () => this.prev());
+        prevButton.textContent = "Slide Anterior";
+        nextButton.textContent = "Proximo Slide";
         this.controls.appendChild(prevButton);
         this.controls.appendChild(nextButton);
+        this.controls.addEventListener("pointerdown", () => this.pause());
+        this.controls.addEventListener("pointerup", () => this.continue());
+        nextButton.addEventListener("pointerup", () => this.next());
+        prevButton.addEventListener("pointerup", () => this.prev());
     }
     init() {
         this.addControls();
